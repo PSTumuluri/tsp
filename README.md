@@ -22,8 +22,7 @@ defined recursively as:
 
 - DISTANCE(p<sub>i</sub>, p<sub>1</sub>) if i = N
 
-- DISTANCE(p<sub>i</sub>, p<sub>i+1</sub>) 
-    + F(p<sub>i+1</sub>, ..., p<sub>N</sub>) if 0 < i < N
+- DISTANCE(p<sub>i</sub>, p<sub>i+1</sub>) + F(p<sub>i+1</sub>, ..., p<sub>N</sub>) if 0 < i < N
 
 Then the objective is to minimize F(P) for N = |V|.
 
