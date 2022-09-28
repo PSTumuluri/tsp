@@ -20,10 +20,10 @@ A solution is more fit if it represents a shorter path. More specifically, let
 P = (p<sub>i</sub>, p<sub>i+1</sub>, ..., p<sub>N</sub>) and let F(P) be
 defined recursively as:
 
-- DISTANCE(p<sub>i</sub>, p<sub>1</sub>)        if i = N
+- DISTANCE(p<sub>i</sub>, p<sub>1</sub>) if i = N
 
-- DISTANCE(p<sub>i</sub>, p<sub>i+1</sub>)      if 0 < i < N
-            + F(p<sub>i+1</sub>, ..., p<sub>N</sub>)
+- DISTANCE(p<sub>i</sub>, p<sub>i+1</sub>) 
+    + F(p<sub>i+1</sub>, ..., p<sub>N</sub>) if 0 < i < N
 
 Then the objective is to minimize F(P) for N = |V|.
 
