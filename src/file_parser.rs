@@ -1,7 +1,7 @@
 use std::fs;
 
 /// Returns a vector of coordinate points based on the contents of the file.
-pub fn parse_file(file_name: &str) -> Result<Vec<(i64, i64)>, &'static str> {
+pub fn parse_file(file_name: &str) -> Result<Vec<(f64, f64)>, &'static str> {
 
     let contents = extract_contents(file_name)?;
     let mut lines = contents.lines();
@@ -22,11 +22,10 @@ pub fn parse_file(file_name: &str) -> Result<Vec<(i64, i64)>, &'static str> {
 /// Returns an error if the file could not be read.
 fn extract_contents(file_name: &str) -> Result<String, &'static str> {
     let contents = fs::read_to_string(file_name);
-    if let Err(_) = contents {
-        return Err("error trying to read file");
-    };
-
-    Ok(contents.unwrap())
+    match contents {
+        Err(_) => Err("error trying to read file"),
+        Ok(contents) => Ok(contents),
+    }
 }
 
 fn get_num_points(line: Option<&str>) -> Result<usize, &'static str> {
@@ -39,14 +38,13 @@ fn get_num_points(line: Option<&str>) -> Result<usize, &'static str> {
         .trim()
         .parse::<usize>();
 
-    if let Err(_) = num_points {
-        return Err("could not parse number of dimension");
+    match num_points {
+        Err(_) => Err("could not parse number of dimensions"),
+        Ok(num_points) => Ok(num_points),
     }
-
-    Ok(num_points.unwrap())
 }
 
-fn get_point(line: &str) -> Result<(i64, i64), &'static str> {
+fn get_point(line: &str) -> Result<(f64, f64), &'static str> {
 
     let point = line
         .split_whitespace()
@@ -55,18 +53,37 @@ fn get_point(line: &str) -> Result<(i64, i64), &'static str> {
     let (x, y) = (
         point.get(1)
             .ok_or_else(|| "x coordinate not provided")?
-            .parse::<i64>(),
+            .parse::<f64>(),
         point.get(2)
             .ok_or_else(|| "y coordinate not provided")?
-            .parse::<i64>()
+            .parse::<f64>()
     );
 
-    if let Err(_) = x {
-        return Err("x coordinate was not an integer");
-    }
-    if let Err(_) = y {
-        return Err("y coordinate was not an integer");
+    let x = match x {
+        Err(_) =>  return Err("x coordinate was not an integer"),
+        Ok(x) => x,
+    };
+    let y = match y {
+        Err(_) => return Err("y coordinate was not an integer"),
+        Ok(y) => y,
+    };
+
+    Ok((x, y))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gets_correct_num_points() {
+        let line = "DIMENSIONS : 123";
+        assert_eq!(123, get_num_points(Some(line)).unwrap());
     }
 
-    Ok((x.unwrap(), y.unwrap()))
+    #[test]
+    fn gets_correct_point() {
+        let line = "column1 123 321";
+        assert_eq!((123.0, 321.0), get_point(line).unwrap());
+    }
 }
