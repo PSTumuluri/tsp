@@ -32,47 +32,6 @@ fn add_to_edge_table(edge_table: &mut Vec<HashMap<usize, usize>>,
     *count += 1;
 }
 
-/// Constructs a child genotype according to the edge crossover algorithm.
-/// While the child has not been fully constructed, it attempts to add adjacent
-/// edges first, favoring those common to both parents, then accepting those
-/// found in one parent or the other, and finally resorting to random edges
-/// in case the above two cases fail.
-pub fn construct_child(edge_table: &mut Vec<HashMap<usize, usize>>, 
-                       rng: &mut ThreadRng) -> Genotype {
-    let num_alleles = edge_table.len();
-    let mut child = Vec::with_capacity(num_alleles);
-
-    let mut vertex = Some(rng.gen_range(0..num_alleles));
-
-    let allele = vertex.unwrap(); // literally cannot be None
-    child.push(allele);
-    remove_edge(edge_table, allele);
-
-    // Used for combing through the genotype for edges if we get stuck.
-    let mut try_allele = 0;
-
-    while child.len() != num_alleles {
-        match vertex {
-            Some(v) => {
-                vertex = try_select_adjacent(&edge_table, v, rng);
-            },
-            None => {
-                if try_allele < child.len() {
-                    vertex = try_select_adjacent(&edge_table, child[try_allele], rng);
-                    try_allele += 1;
-                }
-            }
-        }
-        let allele = vertex.expect(
-            "should be able to find vertices in edge table"
-        );
-        child.push(allele);
-        remove_edge(edge_table, allele);
-    }
-
-    Genotype { data: child }
-}
-
 /// Attempt to select a vertex adjacent to the current one from the edge table.
 /// First tries to find an adjacent vertex common to both parents. Then tries
 /// to find any adjacent vertex which itself has the smallest non-zero length
@@ -134,13 +93,6 @@ mod tests {
         assert_eq!(2, edge_table[0].len());
         assert_eq!(2, *edge_table[0].get(&1).unwrap());
         assert_eq!(2, *edge_table[0].get(&2).unwrap());
-
-        let child = construct_child(&mut edge_table, &mut rng);
-        eprintln!("{:?}", child.data);
-        assert_eq!(3, child.data.len());
-        assert!(child.data.contains(&0));
-        assert!(child.data.contains(&1));
-        assert!(child.data.contains(&2));
 
         // Here, 0 is adjacent to all four other vertices, once each.
         let parent1 = vec![0, 1, 2, 3, 4];

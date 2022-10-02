@@ -45,6 +45,11 @@ impl Genotype {
         }
     }
 
+    /// Constructs a child genotype according to the edge crossover algorithm.
+    /// While the child has not been fully constructed, it attempts to add 
+    /// adjacent edges first, favoring those common to both parents, then 
+    /// accepting those found in one parent or the other, and finally 
+    /// resorting to random edges in case the above two cases fail.
     pub fn edge_crossover(parent1: &mut Self, parent2: &mut Self, 
                           rng: &mut ThreadRng) -> Self {
         let parent1 = parent1.data();
@@ -52,10 +57,42 @@ impl Genotype {
         if parent1.len() != parent2.len() {
             panic!("crossover requires both genotypes to have equal size");
         }
+        let num_alleles = parent1.len();
 
         let mut edge_table = utils::construct_edge_table(&parent1, &parent2); 
-        
-        utils::construct_child(&mut edge_table, rng)
+        let mut child = Vec::with_capacity(num_alleles);
+
+        let mut vertex = Some(rng.gen_range(0..num_alleles));
+
+        let allele = vertex.unwrap(); // literally cannot be None
+        child.push(allele);
+        utils::remove_edge(&mut edge_table, allele);
+
+        // Used for combing through the genotype for edges if we get stuck.
+        let mut try_allele = 0;
+
+        while child.len() != num_alleles {
+            match vertex {
+                Some(v) => {
+                    vertex = utils::try_select_adjacent(&edge_table, v, rng);
+                },
+                None => {
+                    if try_allele < child.len() {
+                        vertex = utils::try_select_adjacent(
+                            &edge_table, child[try_allele], rng
+                        );
+                        try_allele += 1;
+                    }
+                }
+            }
+            let allele = vertex.expect(
+                "should be able to find vertices in edge table"
+            );
+            child.push(allele);
+            utils::remove_edge(&mut edge_table, allele);
+        }
+
+        Genotype { data: child }   
     }
 
     pub fn print(&self) {
