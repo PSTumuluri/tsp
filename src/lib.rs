@@ -27,3 +27,37 @@ pub fn run(file_name: &str) -> Result<(), &'static str> {
 
     Ok(())
 }
+
+pub fn fitness(environ: WeightedGraph, individual: &[usize]) -> f64 {
+    // Edge from the last city back to the start.
+    let final_edge = environ.weight_between(
+        individual[0], individual[environ.num_vertices()-1]
+    );
+
+    let mut current_vertex = individual[0];
+    individual
+        .into_iter()
+        .fold(final_edge, |acc, &x| {
+            let dist = environ.weight_between(current_vertex, x);
+            current_vertex = x;
+            acc + dist
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fitness_is_computed_correctly() {
+        let genotype = vec![0, 1, 2];
+        let point_vec = vec![
+            (0.0, 0.0),
+            (3.0, 4.0),
+            (6.0, 8.0),
+        ];
+        let graph = WeightedGraph::from_points(point_vec);
+
+        assert_eq!(20.0, fitness(graph, &genotype));
+    }
+}

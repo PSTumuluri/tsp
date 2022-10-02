@@ -28,6 +28,16 @@ impl Genotype {
         &self.data
     }
 
+    pub fn num_alleles(&self) -> usize {
+        self.data.len()
+    }
+
+    /// Returns the allele at the specified position in the genotype.
+    /// Panics if the index is out of bounds.
+    pub fn allele(&self, pos: usize) -> usize {
+        self.data[pos]
+    }
+
     pub fn inversion_mutation(self, rng: &mut ThreadRng) -> Self {
         let mut clone = self.data.clone();
         let num_alleles = clone.len();
