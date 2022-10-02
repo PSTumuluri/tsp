@@ -51,20 +51,29 @@ pub fn try_select_adjacent(edge_table: &Vec<HashMap<usize, usize>>,
     let min_list_len = row
         .keys()
         .map(|&v| edge_table[v].len())
-        .min()
-        .expect("really no way for this to happen unless the the whole table is somehow empty which shouldn't be allowed anyway so...");
+        .filter(|&len| len != 0)
+        .min();
     
-    if min_list_len != 0 {
+    if let Some(min) = min_list_len {
         let min_list_vertices = row
             .keys()
             .copied()
-            .filter(|&v| edge_table[v].len() == min_list_len)
+            .filter(|&v| edge_table[v].len() == min)
             .collect::<Vec<usize>>();
-        
         return Some(*min_list_vertices.choose(rng).unwrap());
     }
 
     None
+}
+
+pub fn select_random(candidates: &HashSet<usize>, rng: &mut ThreadRng) -> usize {
+    let idx = rng.gen_range(0..candidates.len());
+    let allele = *candidates
+        .iter()
+        .collect::<Vec<&usize>>()[idx];
+    eprintln!("Randomly selecting {}", allele);
+
+    allele
 }
 
 /// Removes the specified vertex from the adjacency lists of each vertex.
