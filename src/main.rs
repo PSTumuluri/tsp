@@ -10,18 +10,16 @@ fn main() -> Result<(), &'static str> {
     let mut args = env::args();
     let _ = args.next();
     let file = args.next();
-    match file {
-        Some(file) => {
-            if let Err(err) = tsp::run(&file) {
-                eprintln!("error while processing: {}", err);
-                process::exit(1);
-            };
-        },
-        None => {
-            eprintln!("usage: cargo run <file>");
-            process::exit(1);
-        }
-    };
+    if let None = file {
+        eprintln!("usage: cargo run <file>");
+        process::exit(1);
+    }
 
+    let result = tsp::run(&file.unwrap());
+
+    if let Err(err) = result {
+        eprintln!("error while processing: {}", err);
+        process::exit(1);
+    };
     Ok(())
 }

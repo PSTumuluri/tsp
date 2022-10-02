@@ -46,6 +46,11 @@ preserves as many edges contained by the parents as possible, and therefore
 improves the probability that parents selected for recombination will transfer
 to the offspring the relevant information over an order-based operator like PMX.
 
+## Parent Selection and Survivor Selection Operators
+
+The parent selection operator and survivor selection operator are both 
+rank-based. More information to come when I actually implement it.
+
 ## Termination Condition
 
 idk run it a lot of times I guess???
