@@ -71,7 +71,6 @@ pub fn select_random(candidates: &HashSet<usize>, rng: &mut ThreadRng) -> usize 
     let allele = *candidates
         .iter()
         .collect::<Vec<&usize>>()[idx];
-    eprintln!("Randomly selecting {}", allele);
 
     allele
 }

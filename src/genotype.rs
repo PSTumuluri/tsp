@@ -56,6 +56,20 @@ impl Genotype {
         }
     }
 
+    pub fn swap_mutation(self, rng: &mut ThreadRng) -> Self {
+        let mut clone = self.data.clone();
+        let num_alleles = clone.len();
+
+        let mut pos1 = rng.gen_range(0..num_alleles);
+        let mut pos2 = rng.gen_range(0..num_alleles);
+        
+        clone.swap(pos1, pos2);
+        
+        Self {
+            data: clone,
+        }
+    }
+
     /// Constructs a child genotype according to the edge crossover algorithm.
     /// While the child has not been fully constructed, it attempts to add 
     /// adjacent edges first, favoring those common to both parents, then 
@@ -75,9 +89,6 @@ impl Genotype {
 
         let mut vertex = Some(rng.gen_range(0..num_alleles));
 
-        eprintln!("Parent1 = {:?}", parent1);
-        eprintln!("Parent2 = {:?}", parent2);
-
         // Random vertices that have not yet been added. Used if following 
         // edges leads to a dead-end.
         let mut not_removed: HashSet<usize> = 
@@ -87,7 +98,6 @@ impl Genotype {
         child.push(allele);
         utils::remove_edge(&mut edge_table, allele);
         not_removed.remove(&allele);
-        eprintln!("Removing {} by random chance", child[0]);
 
         // Used for combing through the genotype for edges if the current path
         // gets stuck.
@@ -97,7 +107,6 @@ impl Genotype {
             vertex = utils::try_select_adjacent(&edge_table, allele, rng);
             while let None = vertex {
                 if allele_try_idx < child.len() {
-                    eprintln!("Checking list for {}", child[allele_try_idx]);
                     vertex = utils::try_select_adjacent(
                         &edge_table, child[allele_try_idx], rng
                     );
@@ -109,7 +118,6 @@ impl Genotype {
                 }
             }
             allele = vertex.unwrap();
-            eprintln!("Removing {} (edge list: {:?}", allele, edge_table[allele]);
             child.push(allele);
             utils::remove_edge(&mut edge_table, allele);
             not_removed.remove(&allele);
