@@ -56,7 +56,7 @@ pub fn run(config: Config)
         let parent2 = &pop_and_fitness[parent_selection_dist.sample(&mut rng)];
         let mut child1 = Genotype::edge_crossover(&parent1.0, &parent2.0, &mut rng);
         
-        if gen > 5000 {
+        if gen > 1000 {
             child1 = child1.inversion_mutation(&mut rng);
             let child1_fitness = fitness(&graph, child1.data());
             let child1 = (child1, child1_fitness);
