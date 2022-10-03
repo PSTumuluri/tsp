@@ -1,9 +1,3 @@
-/// Converts a 2D index in the conceptual matrix to a 1D index in the flat
-/// matrix representation.
-pub fn flat_index(num_vertices: usize, i: usize, j: usize) -> usize {
-    i * num_vertices + j
-}
-
 /// Computes the distance between two points in Euclidian 2D space.
 pub fn distance(p1: (f64, f64), p2: (f64, f64)) -> f64 {
     ((p1.0 - p2.0).powf(2.0) + (p1.1 - p2.1).powf(2.0)).sqrt()

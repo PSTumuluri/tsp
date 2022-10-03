@@ -3,6 +3,7 @@ mod utils;
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 use std::mem;
+use std::collections::HashSet;
 
 /// Represents a permutation genotype.
 /// The elements are in the range 0..N-1 where N is the number of alleles.
@@ -28,6 +29,16 @@ impl Genotype {
         &self.data
     }
 
+    pub fn num_alleles(&self) -> usize {
+        self.data.len()
+    }
+
+    /// Returns the allele at the specified position in the genotype.
+    /// Panics if the index is out of bounds.
+    pub fn allele(&self, pos: usize) -> usize {
+        self.data[pos]
+    }
+
     pub fn inversion_mutation(self, rng: &mut ThreadRng) -> Self {
         let mut clone = self.data.clone();
         let num_alleles = clone.len();
@@ -45,12 +56,26 @@ impl Genotype {
         }
     }
 
+    pub fn swap_mutation(self, rng: &mut ThreadRng) -> Self {
+        let mut clone = self.data.clone();
+        let num_alleles = clone.len();
+
+        let mut pos1 = rng.gen_range(0..num_alleles);
+        let mut pos2 = rng.gen_range(0..num_alleles);
+        
+        clone.swap(pos1, pos2);
+        
+        Self {
+            data: clone,
+        }
+    }
+
     /// Constructs a child genotype according to the edge crossover algorithm.
     /// While the child has not been fully constructed, it attempts to add 
     /// adjacent edges first, favoring those common to both parents, then 
     /// accepting those found in one parent or the other, and finally 
     /// resorting to random edges in case the above two cases fail.
-    pub fn edge_crossover(parent1: &mut Self, parent2: &mut Self, 
+    pub fn edge_crossover(parent1: &Self, parent2: &Self, 
                           rng: &mut ThreadRng) -> Self {
         let parent1 = parent1.data();
         let parent2 = parent2.data();
@@ -64,32 +89,38 @@ impl Genotype {
 
         let mut vertex = Some(rng.gen_range(0..num_alleles));
 
-        let allele = vertex.unwrap(); // literally cannot be None
+        // Random vertices that have not yet been added. Used if following 
+        // edges leads to a dead-end.
+        let mut not_removed: HashSet<usize> = 
+            HashSet::from_iter((0..num_alleles));
+
+        let mut allele = vertex.unwrap(); // literally cannot be None
         child.push(allele);
         utils::remove_edge(&mut edge_table, allele);
+        not_removed.remove(&allele);
 
-        // Used for combing through the genotype for edges if we get stuck.
-        let mut try_allele = 0;
+        // Used for combing through the genotype for edges if the current path
+        // gets stuck.
+        let mut allele_try_idx = 0;
 
-        while child.len() != num_alleles {
-            match vertex {
-                Some(v) => {
-                    vertex = utils::try_select_adjacent(&edge_table, v, rng);
-                },
-                None => {
-                    if try_allele < child.len() {
-                        vertex = utils::try_select_adjacent(
-                            &edge_table, child[try_allele], rng
-                        );
-                        try_allele += 1;
-                    }
+        while child.len() != num_alleles { 
+            vertex = utils::try_select_adjacent(&edge_table, allele, rng);
+            while let None = vertex {
+                if allele_try_idx < child.len() {
+                    vertex = utils::try_select_adjacent(
+                        &edge_table, child[allele_try_idx], rng
+                    );
+                    allele_try_idx += 1; 
+                } else {
+                    // Got stuck; all child alleles lead to dead-ends
+                    allele = utils::select_random(&not_removed, rng);
+                    vertex = Some(allele)
                 }
             }
-            let allele = vertex.expect(
-                "should be able to find vertices in edge table"
-            );
+            allele = vertex.unwrap();
             child.push(allele);
             utils::remove_edge(&mut edge_table, allele);
+            not_removed.remove(&allele);
         }
 
         Genotype { data: child }   
