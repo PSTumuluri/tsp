@@ -3,8 +3,10 @@ pub mod config;
 mod weighted_graph;
 mod genotype;
 
+
 use rand::prelude::*;
 use rand::distributions::WeightedIndex;
+use rand::distributions::uniform::SampleUniform;
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::prelude::*;
@@ -36,24 +38,37 @@ pub fn run(config: Config)
         pop_size, num_alleles, &graph, &mut rng
     );
 
-    // Reversed because smallest fitness in this problem has the best rank.
     let selection_dist = (0..pop_size)
         .rev()
-        .map(|rank| probability_by_rank(2.0, rank, pop_size))
-        .collect::<Vec<f64>>();
-    let selection_dist = WeightedIndex::new(&selection_dist).unwrap();
+        .map(|rank| probability_by_rank(2.0, rank, pop_size));
+    let parent_selection_dist = WeightedIndex::new(
+            selection_dist.clone().collect::<Vec<f64>>()
+        )
+        .unwrap();
 
+    let survivor_selection_dist = WeightedIndex::new(
+            selection_dist.rev().collect::<Vec<f64>>()
+        )
+        .unwrap();
     for gen in 1..=num_evals {
 
-        let parent1 = &pop_and_fitness[selection_dist.sample(&mut rng)];
-        let parent2 = &pop_and_fitness[selection_dist.sample(&mut rng)];
+        let parent1 = &pop_and_fitness[parent_selection_dist.sample(&mut rng)];
+        let parent2 = &pop_and_fitness[parent_selection_dist.sample(&mut rng)];
         let mut child1 = Genotype::edge_crossover(&parent1.0, &parent2.0, &mut rng);
-        child1 = child1.inversion_mutation(&mut rng);
         
-        let child1_fitness = fitness(&graph, child1.data());
-        let child1 = (child1, child1_fitness);
-
-        replace_worst(&mut pop_and_fitness, child1);
+        if gen > 5000 {
+            child1 = child1.inversion_mutation(&mut rng);
+            let child1_fitness = fitness(&graph, child1.data());
+            let child1 = (child1, child1_fitness);
+            replace_worst(&mut pop_and_fitness, child1);
+        } else {
+            child1 = child1.swap_mutation(&mut rng);
+            let child1_fitness = fitness(&graph, child1.data());
+            let child1 = (child1, child1_fitness);
+            replace_with_probability(
+                &mut pop_and_fitness, child1, &survivor_selection_dist, &mut rng
+            );
+        }
 
         if gen % 10 == 0 {
             println!("{} {}", gen, pop_and_fitness[0].1);
@@ -68,6 +83,23 @@ fn try_open_file(file_name: &str) -> Result<File, &'static str> {
         Err(_) => Err("could not open output file"),
         Ok(file) => Ok(file),
     }
+}
+
+fn replace_with_probability<X>(pop_and_fitness: &mut Vec<(Genotype, f64)>,
+                            child: (Genotype, f64), 
+                            selection_dist: &WeightedIndex<X>, 
+                            rng: &mut ThreadRng,
+                            ) 
+where X: SampleUniform + PartialOrd 
+{
+    pop_and_fitness.remove(selection_dist.sample(rng));
+    let mut idx = 0;
+    for x in pop_and_fitness.iter() {
+        if child.1 > x.1 {
+            idx += 1;
+        }
+    }
+    pop_and_fitness.insert(idx, child);
 }
 
 fn replace_worst(pop_and_fitness: &mut Vec<(Genotype, f64)>, 
