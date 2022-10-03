@@ -1,28 +1,38 @@
 mod file_parser;
+pub mod config;
 mod weighted_graph;
 mod genotype;
 
 use rand::prelude::*;
 use rand::distributions::WeightedIndex;
+use std::fs::{File, OpenOptions};
+use std::io;
+use std::io::prelude::*;
+use std::io::Write;
 
 use weighted_graph::*;
 use genotype::*;
+use config::*;
 
 /// Attempts to run the traveling salesperson problem, using the file named
 /// by the argument to populate the map.
 /// Returns an Error if the string does not represent a file, or if the file
 /// is not correctly formatted.
-pub fn run(file_name: &str) -> Result<(), &'static str> {
+pub fn run(config: Config) 
+-> Result<(), &'static str> {
+    let file_name = config.file_name;
+    let pop_size = config.pop_size;
+    let num_evals = config.num_evals;
+    
     let mut rng = rand::thread_rng();
 
-    let point_vector = file_parser::parse_file(file_name)?;
+    let point_vector = file_parser::parse_file(&file_name)?;
     let graph = WeightedGraph::from_points(point_vector);
     
-    let pop_size = 100; 
     let num_alleles = graph.num_vertices();
 
     // INVARIANT: POPULATION MUST ALWAYS BE SORTED BY FITNESS AT ALL TIMES!!!
-    let pop_and_fitness = initial_population(
+    let mut pop_and_fitness = initial_population(
         pop_size, num_alleles, &graph, &mut rng
     );
 
@@ -33,15 +43,43 @@ pub fn run(file_name: &str) -> Result<(), &'static str> {
         .collect::<Vec<f64>>();
     let selection_dist = WeightedIndex::new(&selection_dist).unwrap();
 
-    for _ in 0..1 {
+    for gen in 1..=num_evals {
+
         let parent1 = &pop_and_fitness[selection_dist.sample(&mut rng)];
         let parent2 = &pop_and_fitness[selection_dist.sample(&mut rng)];
+        let mut child1 = Genotype::edge_crossover(&parent1.0, &parent2.0, &mut rng);
+        child1 = child1.inversion_mutation(&mut rng);
         
-        let child = Genotype::edge_crossover(&parent1.0, &parent2.0, &mut rng);
-        println!("{:?} + {:?} = {:?}", parent1.0.data(), parent2.0.data(), child.data());
+        let child1_fitness = fitness(&graph, child1.data());
+        let child1 = (child1, child1_fitness);
+
+        replace_worst(&mut pop_and_fitness, child1);
+
+        if gen % 10 == 0 {
+            println!("{} {}", gen, pop_and_fitness[0].1);
+        }
     }
 
     Ok(())
+}
+
+fn try_open_file(file_name: &str) -> Result<File, &'static str> {
+    match OpenOptions::new().write(true).open("stats.txt") {
+        Err(_) => Err("could not open output file"),
+        Ok(file) => Ok(file),
+    }
+}
+
+fn replace_worst(pop_and_fitness: &mut Vec<(Genotype, f64)>, 
+                 child: (Genotype, f64)) {
+    let mut idx = 0;
+    for x in pop_and_fitness.iter() {
+        if child.1 > x.1 {
+            idx += 1;
+        }
+    }
+    pop_and_fitness.insert(idx, child);
+    pop_and_fitness.pop();
 }
 
 fn initial_population(pop_size: usize, num_alleles: usize, 

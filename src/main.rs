@@ -1,3 +1,4 @@
+use tsp::config::Config;
 use std::{env, process};
 
 /// usage: cargo run <filename>
@@ -7,15 +8,13 @@ use std::{env, process};
 /// Returns an error if the wrong number of command line arguments is provided
 /// or if the file cannot be parsed according to the required format.
 fn main() -> Result<(), &'static str> {
-    let mut args = env::args();
-    let _ = args.next();
-    let file = args.next();
-    if let None = file {
-        eprintln!("usage: cargo run <file>");
+    let config = Config::from_args(env::args());
+    if let Err(_) = config {
+        eprintln!("usage: cargo run <file> <pop_size> <num_evals>");
         process::exit(1);
     }
 
-    let result = tsp::run(&file.unwrap());
+    let result = tsp::run(config.unwrap());
 
     if let Err(err) = result {
         eprintln!("error while processing: {}", err);
